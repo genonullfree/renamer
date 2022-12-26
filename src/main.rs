@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Read;
 
 use clap::Parser;
 
@@ -37,8 +38,23 @@ fn main() -> std::io::Result<()> {
 
     match opt.cmd {
         Cmd::Swap(a) => swap(&a.a, &a.b)?,
-        Cmd::Map(_m) => todo!(),
+        Cmd::Map(m) => map(&m.map)?,
     };
+
+    Ok(())
+}
+
+fn map(mapfile: &str) -> std::io::Result<()> {
+    let mut map = String::new();
+    fs::File::open(mapfile)?.read_to_string(&mut map)?;
+
+    for line in map.lines() {
+        let split = line.split(':').collect::<Vec<&str>>();
+        if split.len() != 2 {
+            panic!("incorrectly formatted map file on line: {:?}", line);
+        }
+        swap(split[0], split[1])?;
+    }
 
     Ok(())
 }
@@ -52,6 +68,9 @@ fn swap(a: &str, b: &str) -> std::io::Result<()> {
 }
 
 fn mv(a: &str, b: &str) -> std::io::Result<()> {
+    if !std::path::Path::new(a).exists() {
+        panic!("whoops - {} does not exist", a);
+    }
     if std::path::Path::new(b).exists() {
         panic!("whoops - {} exists", b);
     }
