@@ -63,27 +63,52 @@ fn main() -> std::io::Result<()> {
 
 fn name(opt: NameArgs) -> std::io::Result<()> {
     let mut count = opt.start_num;
+    let mut moves = Vec::<(String, String)>::new();
+
     if opt.reverse {
         for item in opt.files.iter().rev() {
-            do_move(&opt.prefix, count, item)?;
+            let name = gen_name(&opt.prefix, count, item);
+            moves.push((item.to_owned(), name));
             count += 1;
         }
     } else {
         for item in opt.files.iter() {
-            do_move(&opt.prefix, count, item)?;
+            let name = gen_name(&opt.prefix, count, item);
+            moves.push((item.to_owned(), name));
             count += 1;
         }
+    }
+
+    println!("{:?}", moves);
+    deconflict_moves(&mut moves);
+    println!("{:?}", moves);
+
+    for (item, name) in moves {
+        do_move(&item, &name)?;
     }
 
     Ok(())
 }
 
-fn do_move(prefix: &str, count: usize, item: &str) -> std::io::Result<()> {
-    let ext = detect_extension(item);
-    let dest = format!("{}{:02}.{}", prefix, count, ext);
+fn deconflict_moves(input: &mut Vec<(String, String)>) {
+    let mut out = input.clone();
+    'reanalyze: loop {
+        for (a, (_, n)) in out.iter().enumerate() {
+            for (b, (j, _)) in out.iter().enumerate() {
+                if n == j && a < b {
+                    out.swap(a, b);
+                    continue 'reanalyze;
+                }
+            }
+        }
+        *input = out;
+        break;
+    }
+}
 
+fn do_move(item: &str, dest: &str) -> std::io::Result<()> {
     if item == dest {
-        println!("skipping move {item}");
+        println!("skipping redundant move {item}");
         return Ok(());
     }
 
@@ -91,6 +116,11 @@ fn do_move(prefix: &str, count: usize, item: &str) -> std::io::Result<()> {
     mv(item, &dest)?;
 
     Ok(())
+}
+
+fn gen_name(prefix: &str, count: usize, item: &str) -> String {
+    let ext = detect_extension(item);
+    format!("{}{:02}.{}", prefix, count, ext)
 }
 
 fn detect_extension(input: &str) -> &str {
@@ -104,7 +134,7 @@ fn map(mapfile: &str) -> std::io::Result<()> {
     for line in map.lines() {
         let split = line.split(':').collect::<Vec<&str>>();
         if split.len() != 2 {
-            panic!("incorrectly formatted map file on line: {:?}", line);
+            panic!("incorrectly formatted map file with line: {:?}", line);
         }
         swap(split[0], split[1])?;
     }
@@ -114,7 +144,7 @@ fn map(mapfile: &str) -> std::io::Result<()> {
 
 fn swap(a: &str, b: &str) -> std::io::Result<()> {
     if a == b {
-        println!("skipping swap: {a}");
+        println!("skipping redundant swap: {a}");
         return Ok(());
     }
     println!("{a} <=> {b}");
