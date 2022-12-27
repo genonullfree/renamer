@@ -79,9 +79,7 @@ fn name(opt: NameArgs) -> std::io::Result<()> {
         }
     }
 
-    println!("{:?}", moves);
     deconflict_moves(&mut moves);
-    println!("{:?}", moves);
 
     for (item, name) in moves {
         do_move(&item, &name)?;
@@ -91,17 +89,24 @@ fn name(opt: NameArgs) -> std::io::Result<()> {
 }
 
 fn deconflict_moves(input: &mut Vec<(String, String)>) {
-    let mut out = input.clone();
+    let mut count = 0;
+    let max = input.len() * input.len();
     'reanalyze: loop {
-        for (a, (_, n)) in out.iter().enumerate() {
-            for (b, (j, _)) in out.iter().enumerate() {
+        for (a, (_, n)) in input.iter().enumerate() {
+            for (b, (j, _)) in input.iter().enumerate() {
                 if n == j && a < b {
-                    out.swap(a, b);
+                    count += 1;
+                    if count > max {
+                        println!("cannot resolve move conflicts");
+                        println!("{:?}", input);
+                        panic!();
+                    }
+
+                    input.swap(a, b);
                     continue 'reanalyze;
                 }
             }
         }
-        *input = out;
         break;
     }
 }
@@ -113,7 +118,7 @@ fn do_move(item: &str, dest: &str) -> std::io::Result<()> {
     }
 
     println!("{item} => {dest}");
-    mv(item, &dest)?;
+    mv(item, dest)?;
 
     Ok(())
 }
