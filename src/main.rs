@@ -38,8 +38,8 @@ struct NameArgs {
     #[arg(short, long)]
     prefix: String,
 
-    #[arg(short, long, default_value_t = 1)]
-    start_num: usize,
+    #[arg(short, long)]
+    start_num: Option<usize>,
 
     #[arg(short, long, num_args = ..)]
     files: Vec<String>,
@@ -62,7 +62,7 @@ fn main() -> std::io::Result<()> {
 }
 
 fn name(opt: NameArgs) -> std::io::Result<()> {
-    let mut count = opt.start_num;
+    let mut count = get_start_num(&opt);
     let mut moves = Vec::<(String, String)>::new();
 
     if opt.reverse {
@@ -86,6 +86,24 @@ fn name(opt: NameArgs) -> std::io::Result<()> {
     }
 
     Ok(())
+}
+
+fn get_start_num(opt: &NameArgs) -> usize {
+    if let Some(num) = opt.start_num {
+        num
+    } else {
+        let mut start = 1;
+
+        loop {
+            let name = gen_name(&opt.prefix, start, &opt.files[0]);
+            if !std::path::Path::new(&name).exists() {
+                break;
+            }
+            start += 1;
+        }
+
+        start
+    }
 }
 
 fn deconflict_moves(input: &mut Vec<(String, String)>) {
@@ -125,11 +143,20 @@ fn do_move(item: &str, dest: &str) -> std::io::Result<()> {
 
 fn gen_name(prefix: &str, count: usize, item: &str) -> String {
     let ext = detect_extension(item);
-    format!("{}{:02}.{}", prefix, count, ext)
+    if ext.is_empty() {
+        format!("{}{:02}", prefix, count)
+    } else {
+        format!("{}{:02}.{}", prefix, count, ext)
+    }
 }
 
 fn detect_extension(input: &str) -> &str {
-    input.split('.').collect::<Vec<&str>>().pop().unwrap()
+    let ext = input.split('.').collect::<Vec<&str>>().pop().unwrap();
+    if ext == input {
+        ""
+    } else {
+        ext
+    }
 }
 
 fn map(mapfile: &str) -> std::io::Result<()> {

@@ -2,8 +2,6 @@
 
 Renamer is a small app that swaps file names by moving them around. This can be handy when backing up shows and the files on the disc are not in the correct order.
 
-Renamer currently only works with a 1:1 renaming scheme (i.e.: a.mkv and b.mkv are oppositely named and need to be swapped; every rename resolves to a pair A <=> B).
-
 ## Commands
 
 There are 3 commands to `renamer`:
@@ -43,12 +41,17 @@ This will rename `b.mkv` to `a.mkv` and `a.mkv` to `b.mkv`, and the same for `c.
 
 ## Name
 
-The `name` command will take a list of files and rename them with a specific pattern.
+The `name` command will take a list of files and rename them with a specific pattern. It can also now automatically detect what number to start at!
 
 ```bash
-$ renamer name -p Show_Name_S01E -s 12 -f file1.mkv, file2.mkv, file3.mkv
-$ ls -l
-Show_name_S01E12.mkv
-Show_name_S01E13.mkv
-Show_name_S01E14.mkv
+$ ls *
+Show_Name_S01E01.mkv  Show_Name_S01E02.mkv  Show_Name_S01E03.mkv
+
+dir:
+a_01.mkv  a_02.mkv  a_03.mkv
+
+$ renamer name -p Show_Name_S01E -f dir/a_0*
+dir/a_01.mkv => Show_Name_S01E04.mkv
+dir/a_02.mkv => Show_Name_S01E05.mkv
+dir/a_03.mkv => Show_Name_S01E06.mkv
 ```
