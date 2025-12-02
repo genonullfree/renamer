@@ -11,7 +11,8 @@ There are 3 commands to `renamer`:
 
 ```bash
 renamer swap -a <A> -b <B>
-renamer map -m mapfile.txt
+renamer swaplist -m mapfile.txt
+renamer remap -m mapfile.txt
 renamer name -p Show_Name_S01E -s 12 -f files*.mkv
 ```
 
@@ -24,9 +25,13 @@ b -> a
 tmp -> b
 ```
 
-## Map
+## Swaplist
 
-The `map` command takes a `mapfile` that contains the swapping map list. This list is a simple list of A <=> B name swaps.
+The `swaplist` command takes a `mapfile` that contains the swapping map list. This list is a simple list of A <=> B name swaps. Each item in this list should only occur once.
+
+## Remap
+
+The `remap` command operates similarly to the `swaplist` command except that each line in the maplist file A:B means A will be renamed to B.
 
 ### Mapfile
 

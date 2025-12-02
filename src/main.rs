@@ -7,9 +7,16 @@ static TMP: &str = "tmp.file";
 
 #[derive(Debug, Parser)]
 enum Cmd {
+    /// Swap two filenames
     Swap(SwapArgs),
-    Map(MapArgs),
+
+    /// Swap a non-overlapping list of files
+    Swaplist(MapArgs),
+
+    /// Remap a list of filenames to new filenames
     Remap(MapArgs),
+
+    /// Rename a list of files to a new format
     Name(NameArgs),
 }
 
@@ -55,7 +62,7 @@ fn main() -> std::io::Result<()> {
 
     match opt.cmd {
         Cmd::Swap(a) => swap(&a.a, &a.b)?,
-        Cmd::Map(m) => map(&m.map)?,
+        Cmd::Swaplist(m) => map(&m.map)?,
         Cmd::Remap(m) => remap(&m.map)?,
         Cmd::Name(n) => name(n)?,
     };
@@ -188,11 +195,13 @@ fn remap(mapfile: &str) -> std::io::Result<()> {
             panic!("incorrectly formatted map file with line: {:?}", line);
         }
         let tempname = format!("{}.tmp", split[1]);
+        println!("{} => {tempname}", split[0]);
         mv(split[0], &tempname)?;
         temp.push((tempname, split[1]));
     }
 
     for (tmp, prod) in temp {
+        println!("{tmp} => {prod}");
         mv(&tmp, prod)?;
     }
 
