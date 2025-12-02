@@ -9,6 +9,7 @@ static TMP: &str = "tmp.file";
 enum Cmd {
     Swap(SwapArgs),
     Map(MapArgs),
+    Remap(MapArgs),
     Name(NameArgs),
 }
 
@@ -55,6 +56,7 @@ fn main() -> std::io::Result<()> {
     match opt.cmd {
         Cmd::Swap(a) => swap(&a.a, &a.b)?,
         Cmd::Map(m) => map(&m.map)?,
+        Cmd::Remap(m) => remap(&m.map)?,
         Cmd::Name(n) => name(n)?,
     };
 
@@ -173,6 +175,30 @@ fn map(mapfile: &str) -> std::io::Result<()> {
 
     Ok(())
 }
+
+fn remap(mapfile: &str) -> std::io::Result<()> {
+    let mut map = String::new();
+    fs::File::open(mapfile)?.read_to_string(&mut map)?;
+
+    let mut temp = Vec::new();
+
+    for line in map.lines() {
+        let split = line.split(':').collect::<Vec<&str>>();
+        if split.len() != 2 {
+            panic!("incorrectly formatted map file with line: {:?}", line);
+        }
+        let tempname = format!("{}.tmp", split[1]);
+        mv(split[0], &tempname)?;
+        temp.push((tempname, split[1]));
+    }
+
+    for (tmp, prod) in temp {
+        mv(&tmp, prod)?;
+    }
+
+    Ok(())
+}
+
 
 fn swap(a: &str, b: &str) -> std::io::Result<()> {
     if a == b {
