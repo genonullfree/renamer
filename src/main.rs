@@ -24,6 +24,20 @@ enum Cmd {
 struct Args {
     #[command(subcommand)]
     cmd: Cmd,
+
+    #[command(flatten)]
+    opts: Opts,
+}
+
+#[derive(Debug, Parser)]
+struct Opts {
+    /// Enable verbose mode
+    #[arg(short, long)]
+    verbose: bool,
+
+    /// Test run -- will not execute any moves
+    #[arg(short, long)]
+    test: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -61,16 +75,16 @@ fn main() -> std::io::Result<()> {
     let opt = Args::parse();
 
     match opt.cmd {
-        Cmd::Swap(a) => swap(&a.a, &a.b)?,
-        Cmd::Swaplist(m) => map(&m.map)?,
-        Cmd::Remap(m) => remap(&m.map)?,
-        Cmd::Name(n) => name(n)?,
+        Cmd::Swap(a) => swap(&a.a, &a.b, &opt.opts)?,
+        Cmd::Swaplist(m) => map(&m.map, &opt.opts)?,
+        Cmd::Remap(m) => remap(&m.map, &opt.opts)?,
+        Cmd::Name(n) => name(n, &opt.opts)?,
     };
 
     Ok(())
 }
 
-fn name(opt: NameArgs) -> std::io::Result<()> {
+fn name(opt: NameArgs, args: &Opts) -> std::io::Result<()> {
     let mut count = get_start_num(&opt);
     let mut moves = Vec::<(String, String)>::new();
 
@@ -91,7 +105,7 @@ fn name(opt: NameArgs) -> std::io::Result<()> {
     deconflict_moves(&mut moves);
 
     for (item, name) in moves {
-        do_move(&item, &name)?;
+        do_move(&item, &name, args)?;
     }
 
     Ok(())
@@ -138,14 +152,18 @@ fn deconflict_moves(input: &mut Vec<(String, String)>) {
     }
 }
 
-fn do_move(item: &str, dest: &str) -> std::io::Result<()> {
+fn do_move(item: &str, dest: &str, args: &Opts) -> std::io::Result<()> {
     if item == dest {
-        println!("skipping redundant move {item}");
+        if args.verbose {
+            println!("skipping redundant move {item}");
+        }
         return Ok(());
     }
 
-    println!("{item} => {dest}");
-    mv(item, dest)?;
+    if args.verbose {
+        println!("{item} => {dest}");
+    }
+    mv(item, dest, args)?;
 
     Ok(())
 }
@@ -168,7 +186,7 @@ fn detect_extension(input: &str) -> &str {
     }
 }
 
-fn map(mapfile: &str) -> std::io::Result<()> {
+fn map(mapfile: &str, args: &Opts) -> std::io::Result<()> {
     let mut map = String::new();
     fs::File::open(mapfile)?.read_to_string(&mut map)?;
 
@@ -177,13 +195,13 @@ fn map(mapfile: &str) -> std::io::Result<()> {
         if split.len() != 2 {
             panic!("incorrectly formatted map file with line: {:?}", line);
         }
-        swap(split[0], split[1])?;
+        swap(split[0], split[1], args)?;
     }
 
     Ok(())
 }
 
-fn remap(mapfile: &str) -> std::io::Result<()> {
+fn remap(mapfile: &str, args: &Opts) -> std::io::Result<()> {
     let mut map = String::new();
     fs::File::open(mapfile)?.read_to_string(&mut map)?;
 
@@ -195,41 +213,49 @@ fn remap(mapfile: &str) -> std::io::Result<()> {
             panic!("incorrectly formatted map file with line: {:?}", line);
         }
         let tempname = format!("{}.tmp", split[1]);
-        println!("{} => {tempname}", split[0]);
-        mv(split[0], &tempname)?;
-        temp.push((tempname, split[1]));
+        mv(split[0], &tempname, args)?;
+        temp.push((split[0], tempname, split[1]));
     }
 
-    for (tmp, prod) in temp {
-        println!("{tmp} => {prod}");
-        mv(&tmp, prod)?;
+    for (orig, tmp, prod) in temp {
+        if args.verbose {
+            println!("{orig} => {prod}");
+        }
+        mv(&tmp, prod, args)?;
     }
 
     Ok(())
 }
 
-
-fn swap(a: &str, b: &str) -> std::io::Result<()> {
+fn swap(a: &str, b: &str, args: &Opts) -> std::io::Result<()> {
     if a == b {
-        println!("skipping redundant swap: {a}");
+        if args.verbose {
+            println!("skipping redundant swap: {a}");
+        }
         return Ok(());
     }
-    println!("{a} <=> {b}");
+    if args.verbose {
+        println!("{a} <=> {b}");
+    }
 
-    mv(a, TMP)?;
-    mv(b, a)?;
-    mv(TMP, b)?;
+    mv(a, TMP, args)?;
+    mv(b, a, args)?;
+    mv(TMP, b, args)?;
 
     Ok(())
 }
 
-fn mv(a: &str, b: &str) -> std::io::Result<()> {
-    if !std::path::Path::new(a).exists() {
-        panic!("whoops - {} does not exist", a);
-    }
-    if std::path::Path::new(b).exists() {
-        panic!("whoops - {} exists", b);
-    }
+fn mv(a: &str, b: &str, args: &Opts) -> std::io::Result<()> {
+    if !args.test {
+        if !std::path::Path::new(a).exists() {
+            panic!("whoops - {} does not exist", a);
+        }
+        if std::path::Path::new(b).exists() {
+            panic!("whoops - {} exists", b);
+        }
 
-    fs::rename(a, b)
+        fs::rename(a, b)
+    } else {
+        Ok(())
+    }
 }

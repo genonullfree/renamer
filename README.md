@@ -2,11 +2,14 @@
 
 Renamer is a small app that swaps file names by moving them around. This can be handy when backing up shows and the files on the disc are not in the correct order.
 
+Use the `-t` test flag to have `renamer` output what would be done. This mode does not modify any files.
+
 ## Commands
 
-There are 3 commands to `renamer`:
+There are 4 commands to `renamer`:
 - *swap*
-- *map*
+- *swaplist*
+- *remap*
 - *name*
 
 ```bash
